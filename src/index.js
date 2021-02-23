@@ -1,6 +1,6 @@
 const { request, response } = require('express');
 const express=require('express');
-const{ uuid }=require('uuidv4');
+const{ uuid, isUuid }=require('uuidv4');
 const app=express();
 
 app.use(express.json());
@@ -19,15 +19,42 @@ app.use(express.json());
  * Route params: Indentificar recursos(Atualizar/deletar)
  * Request body params: Conteudo na hora de criar ou editar um recurso (JSON)
  * 
+ * Middleware
+ * 
+ * Interceptador de requisições que interrompe totalmente a requisição ou alterar dados da requisição
  */
 
  const projects=[];
 
-app.get('/projects', (request, response)=>{
-    // const {title,owner}= request.query;
+ function logRequests(request, response, next ){
 
-    // console.log(title);
-    // console.log(owner);
+    const { method, url }= request;
+
+    const logLabel = String.prototype.concat(method,'-',url);
+
+    console.log(logLabel);
+  
+    return next();// Proximo middleware
+ }
+
+ function validateProjectId(request,response,next){
+
+    const{ id }=request.params;
+
+    if(!isUuid(id)){
+        return response.status(400).json({error: 'Invalid project ID'})
+    }
+
+    return next();
+ }
+
+ app.use(logRequests);
+
+app.get('/projects', (request, response)=>{
+    const {title,owner}= request.query;
+
+    console.log(title);
+    console.log(owner);
    return response.json(projects);
 });
 
@@ -40,7 +67,7 @@ app.post('/projects',(request, response)=>{
     console.log(title,owner);
     return response.json(project);
 });
-app.put('/projects/:id', (request, response)=>{
+app.put('/projects/:id',validateProjectId, (request, response)=>{
     const{id}=request.params;
     const{title,owner}= request.body;
 
@@ -62,7 +89,7 @@ app.put('/projects/:id', (request, response)=>{
     return response.json(project)
 });
 
-app.delete('/projects/:id', (request, response)=>{
+app.delete('/projects/:id',validateProjectId, (request, response)=>{
 
     const{id}=request.body;
 
